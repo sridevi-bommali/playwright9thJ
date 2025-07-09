@@ -1,0 +1,27 @@
+import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+
+function getTimestampFolderName(): string {
+  const now = new Date();
+  return `allure-report-${now.toISOString().replace(/[:.]/g, '-')}`;
+}
+
+const resultsDir = path.resolve(__dirname, '..', 'allure-results');
+
+if (!fs.existsSync(resultsDir) || fs.readdirSync(resultsDir).length === 0) {
+  console.error('❌ No allure-results found. Make sure tests ran and generated results.');
+  process.exit(1);
+}
+
+const outputDir = path.resolve(__dirname, '..', 'allure-reports', getTimestampFolderName());
+fs.mkdirSync(outputDir, { recursive: true });
+
+try {
+  console.log(`🔧 Generating Allure HTML report to: ${outputDir}`);
+  execSync(`npx allure generate ${resultsDir} --clean -o ${outputDir}`, { stdio: 'inherit' });
+  console.log(`✅ Allure report successfully generated at: ${outputDir}`);
+} catch (err) {
+  console.error('❌ Failed to generate Allure report', err);
+  process.exit(1);
+}
