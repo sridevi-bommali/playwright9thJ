@@ -1,0 +1,102 @@
+# Playwright with TypeScript
+npm install -D playwright @playwright/test typescript ts-node
+
+# Allure reporter for Playwright
+npm install -D allure-playwright
+
+# Allure command line (for report generation)
+npm install -D allure-commandline
+
+# Optional: cross-platform compatibility
+npm install -D rimraf
+
+
+--------------------
+
+
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "outDir": "dist",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "skipLibCheck": true
+  },
+  "include": ["tests/**/*.ts", "playwright.config.ts"]
+}
+
+
+
+
+----------------------------------
+import { defineConfig, devices } from '@playwright/test';
+import allureReporter from 'allure-playwright';
+
+export default defineConfig({
+  testDir: './tests',
+  timeout: 30 * 1000,
+  retries: 0,
+  reporter: [
+    [allureReporter, { outputFolder: 'allure-results' }],
+    ['list']
+  ],
+  use: {
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    baseURL: 'https://example.com'
+  },
+});
+
+
+
+----------------------
+utils/timestamp.ts
+export function getTimestampFolderName(): string {
+  const now = new Date();
+  const timestamp = now.toISOString().replace(/[:.]/g, '-');
+  return `allure-report-${timestamp}`;
+}
+
+
+
+-----------------
+
+generate-allure-report.ts
+
+import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { getTimestampFolderName } from './utils/timestamp';
+
+const timestampFolder = getTimestampFolderName();
+const outputPath = path.join(__dirname, '..', 'allure-reports', timestampFolder);
+
+// Ensure allure-reports directory exists
+fs.mkdirSync(outputPath, { recursive: true });
+
+console.log('Generating Allure HTML report...');
+
+execSync(`npx allure generate allure-results --clean -o ${outputPath}`, {
+  stdio: 'inherit'
+});
+
+console.log(`✅ Allure report generated at: ${outputPath}`);
+
+
+
+---------------------
+package.json
+
+"scripts": {
+  "test": "npx playwright test",
+  "posttest": "ts-node generate-allure-report.ts",
+  "clean": "rimraf allure-results allure-report allure-reports"
+}
+
+
+-------------------
+
